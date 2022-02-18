@@ -4,15 +4,10 @@ namespace Barryvdh\elFinderFlysystemDriver;
 
 use elFinderVolumeDriver;
 use Intervention\Image\ImageManager;
-use League\Flysystem\Cached\CachedAdapter;
-use League\Flysystem\Cached\CacheInterface;
 use League\Flysystem\Filesystem;
+use League\Flysystem\FilesystemAdapter;
 use League\Flysystem\Util;
-use League\Flysystem\FilesystemInterface;
-use League\Flysystem\Cached\Storage\Memory as MemoryStore;
 use League\Glide\Urls\UrlBuilderFactory;
-use Barryvdh\elFinderFlysystemDriver\Plugin\GetUrl;
-use Barryvdh\elFinderFlysystemDriver\Cache\SessionStore;
 
 /**
  * elFinder driver for Flysytem (https://github.com/thephpleague/flysystem)
@@ -25,22 +20,15 @@ class Driver extends elFinderVolumeDriver
      * Driver id
      * Must be started from letter and contains [a-z0-9]
      * Used as part of volume id
-     *
-     * @var string
      **/
-    protected $driverId = 'fls';
+    protected string $driverId = 'fls';
 
-    /** @var FilesystemInterface $fs */
-    protected $fs;
+    protected FilesystemAdapter $fs;
 
-    /** @var CacheInterface $fs */
-    protected $fscache;
-
-    /** @var UrlBuilder $urlBuilder */
+    /** @var \League\Glide\Urls\UrlBuilder|null $urlBuilder */
     protected $urlBuilder = null;
 
-    /** @var ImageManager $imageManager */
-    protected $imageManager = null;
+    protected ImageManager $imageManager = null;
 
     /**
      * Constructor
@@ -72,16 +60,6 @@ class Driver extends elFinderVolumeDriver
         return parent::mount($opts);
     }
 
-    protected function clearcache()
-    {
-        parent::clearcache();
-
-        // clear cached adapter cache
-        if ($this->fscache) {
-            $this->fscache->flush();
-        }
-    }
-
     /**
      * Find the icon based on the used Adapter
      *
@@ -89,19 +67,10 @@ class Driver extends elFinderVolumeDriver
      */
     protected function getIcon()
     {
-        try {
-            $adapter = $this->fs->getAdapter();
-        } catch (\Exception $e) {
-            $adapter = null;
-        }
 
-        if ($adapter instanceof CachedAdapter) {
-            $adapter = $adapter->getAdapter();
-        }
-
-        if ($adapter instanceof League\Flysystem\Adapter\AbstractFtpAdapter) {
+        if ($this->fs instanceof League\Flysystem\Ftp\FtpAdapter) {
             $icon = 'volume_icon_ftp.png';
-        } elseif ($adapter instanceof League\Flysystem\Dropbox\DropboxAdapter) {
+        } elseif ($this->fs instanceof Spatie\FlysystemDropbox\DropboxAdapter) {
             $icon = 'volume_icon_dropbox.png';
         } else {
             $icon = 'volume_icon_local.png';
@@ -120,7 +89,7 @@ class Driver extends elFinderVolumeDriver
     protected function init()
     {
         $this->fs = $this->options['filesystem'];
-        if (!($this->fs instanceof FilesystemInterface)) {
+        if (!($this->fs instanceof FilesystemAdapter)) {
             return $this->setError('A filesystem instance is required');
         }
 
