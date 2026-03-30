@@ -3,6 +3,7 @@
 namespace Barryvdh\elFinderFlysystemDriver;
 
 use elFinderVolumeDriver;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Intervention\Image\Encoders\AutoEncoder;
 use Intervention\Image\ImageManager;
 use League\Flysystem\FileAttributes;
@@ -119,7 +120,7 @@ class Driver extends elFinderVolumeDriver
         if ($this->options['imageManager']) {
             $this->imageManager = $this->options['imageManager'];
         } else {
-            $this->imageManager = ImageManager::gd();
+            $this->imageManager = new ImageManager(new GdDriver());
         }
 
         // enable command archive
@@ -750,7 +751,9 @@ class Driver extends elFinderVolumeDriver
             return $this->setError(elFinder::ERROR_UNSUPPORT_TYPE);
         }
 
-        if (!$image = $this->imageManager->read($this->_getContents($path))) {
+        // See https://image.intervention.io/v4/getting-started/upgrade
+        $decodeMethod = method_exists($this->imageManager, 'decode') ? 'decode' : 'read';
+        if (!$image = $this->imageManager->{$decodeMethod}($this->_getContents($path))) {
             return false;
         }
 
