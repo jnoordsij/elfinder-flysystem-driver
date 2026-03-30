@@ -782,7 +782,7 @@ class Driver extends elFinderVolumeDriver
         if ($jpgQuality) {
             $result = $image->encode(new AutoEncoder(quality: $jpgQuality))->toString();
         } else {
-            $result = $image->encode()->toString();
+            $result = $image->encode(new AutoEncoder())->toString();
         }
         if ($result && $this->_filePutContents($path, $result)) {
             $this->rmTmb($file);
